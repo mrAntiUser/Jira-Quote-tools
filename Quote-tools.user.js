@@ -66,7 +66,7 @@
     $users.each(function(){
       if ($(this).next().is('men')){return}
       const $userName = $(this).attr('rel');
-      const $mention = $('<men class="qt-mention"></men>');
+      const $mention = $('<men class="qt-mention" title="Упомянуть пользователя"></men>');
       $mention.insertAfter(this);
       $mention.click(function(event){
         event.stopPropagation();
@@ -97,7 +97,7 @@
 
   function makePopupQuote($par){
     if ($popupQuote){$popupQuote.remove()}
-    $popupQuote = $('<div id="qt-popup" class="aui-button"></div>').click(function(){
+    $popupQuote = $('<div id="qt-popup" class="aui-button" title="Процитировать выделенный текст"></div>').click(function(){
       sendToTextArea(quoteData);
       $popupQuote.remove();
     });
