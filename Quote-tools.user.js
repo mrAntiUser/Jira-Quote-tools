@@ -28,6 +28,7 @@
     new MutationObserver(function(){
       $obsrvContainer = $('div#activitymodule div.mod-content div#issue_actions_container');
       if ($obsrvContainer.length === 0){ return };
+      document.onselectionchange = function(){if ($popupQuote){$popupQuote.remove()}};
       this.disconnect();
       addNewCss();
       observerStart();
