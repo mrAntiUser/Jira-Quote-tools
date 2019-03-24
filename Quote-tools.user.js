@@ -28,7 +28,7 @@
     new MutationObserver(function(){
       $obsrvContainer = $('div#activitymodule div.mod-content div#issue_actions_container');
       if ($obsrvContainer.length === 0){ return };
-      document.onselectionchange = function(){if ($popupQuote){$popupQuote.remove()}};
+      document.onselectionchange = function(){if ($popupQuote && !$popupQuote.is(":hover")){$popupQuote.remove()}};
       this.disconnect();
       addNewCss();
       observerStart();
@@ -99,8 +99,8 @@
   function makePopupQuote($par){
     if ($popupQuote){$popupQuote.remove()}
     $popupQuote = $('<div id="qt-popup" class="aui-button" title="Процитировать выделенный текст"></div>').click(function(){
-      sendToTextArea(quoteData);
       $popupQuote.remove();
+      sendToTextArea(quoteData);
     });
     $par.append($popupQuote);
   }
