@@ -2,7 +2,7 @@
 // @name         Quote tools
 // @license      MIT
 // @namespace    argustelecom.ru
-// @version      1.0
+// @version      1.1
 // @description  Quote tools
 // @author       Andy BitOff
 // @include      *support.argustelecom.ru*
@@ -12,6 +12,9 @@
 // ==/UserScript==
 
 /* RELEASE NOTES
+  1.1
+    Поменян механизм popup'а теперь он всплывает привязанным к телу таски, что также позволяет цитировать не только
+      коменты, но и описание таски.
   1.0
     Release
 */
@@ -19,7 +22,7 @@
 (function (MutationObserver) {
   'use strict';
 
-  let $obsrvContainer, $users, $commBlock, $textArea, $popupQuote, quoteData;
+  let $obsrvContainer, $users, $textArea, $popupQuote, quoteData;
   const observer = new MutationObserver(mutationCallback);
 
   const timId = setInterval(function() {
@@ -28,7 +31,7 @@
     new MutationObserver(function(){
       $obsrvContainer = $('div#activitymodule div.mod-content div#issue_actions_container');
       if ($obsrvContainer.length === 0){ return };
-      document.onselectionchange = function(){if ($popupQuote && !$popupQuote.is(":hover")){$popupQuote.remove()}};
+      document.onselectionchange = function(){if ($popupQuote && !$popupQuote.is(":hover")){popupQuoteVisible(false)}};
       this.disconnect();
       addNewCss();
       observerStart();
@@ -43,27 +46,32 @@
   function observerStart() {
     $users = $('div.issuePanelContainer a.user-hover');
     makeUsers();
-    $commBlock = $('div#activitymodule div[id^="comment-"] div.action-body');
-    $commBlock.mouseup(function(event){
+    $('div#descriptionmodule, div#activitymodule').mouseup(function(event){
       const selected = getSelectedText();
       const selText = selected.toString();
       if (selText !== ''){
-        const quoteUser = $(this).parent().find('div.action-head div.action-details > a').attr('rel');
-        quoteData = '\n{quote}\n_[~' + quoteUser + ']_\n\n' + selText + '\n{quote}\n';
+        const quoteUser = ($(this).attr('id') === 'activitymodule')
+            ? $(selected.focusNode).parents('div[id^="comment-"]').find('div.action-head div.action-details > a').attr('rel')
+            : $('div#peoplemodule span#reporter-val span.user-hover[id^="issue_summary_reporter"]').attr('rel');
+        quoteData = '{quote}\n_[~' + quoteUser + ']_\n' + selText + '\n{quote}\n';
         event.stopPropagation();
-        makePopupQuote($(this).parent());
-        const x = $(selected.focusNode.parentNode).offset().left - $(this).parent().offset().left;
-        const y = $(selected.focusNode.parentNode).offset().top - $(this).offset().top;
+        const x = $(selected.focusNode.parentNode).offset().left - $popupQuote.parent().offset().left + 5;
+        const y = $(selected.focusNode.parentNode).offset().top
+                    + $popupQuote.parent().scrollTop()
+                    - $('div.content').offset().top
+                    - $popupQuote.outerHeight() - 13;
         $popupQuote.css({'top': event.offsetY + y + 'px', 'left': event.offsetX + x + 'px'});
+        popupQuoteVisible(true);
       } else {
-        $popupQuote.remove();
+        popupQuoteVisible(false);
       }
     });
     observer.observe($obsrvContainer.get(0), {childList: true})
   }
 
   function makeUsers() {
-    $textArea = $('div#comment-wiki-edit.wiki-edit-content textarea#comment.textarea')
+    $textArea = $('div#comment-wiki-edit.wiki-edit-content textarea#comment.textarea');
+    makePopupQuote($('div.issue-view'));
     $users.each(function(){
       if ($(this).next().is('men')){return}
       const $userName = $(this).attr('rel');
@@ -80,6 +88,7 @@
     $('div#addcomment.module').addClass('active');
     const caretPos = $textArea[0].selectionStart;
     const textAreaTxt = $textArea.val();
+    if (textAreaTxt !== ''){text = '\n' + text}
     $textArea.val(textAreaTxt.substring(0, caretPos) + text + textAreaTxt.substring(caretPos));
     $textArea[0].selectionStart = caretPos + text.length;
     $textArea[0].selectionEnd = $textArea[0].selectionStart;
@@ -97,12 +106,27 @@
   }
 
   function makePopupQuote($par){
-    if ($popupQuote){$popupQuote.remove()}
-    $popupQuote = $('<div id="qt-popup" class="aui-button" title="Процитировать выделенный текст"></div>').click(function(){
-      $popupQuote.remove();
+    if ($popupQuote){return}
+    $popupQuote = $('<div id="qt-popup" class="aui-button enable" title="Процитировать выделенный текст"></div>').click(function(){
+      popupQuoteVisible(false);
       sendToTextArea(quoteData);
     });
     $par.append($popupQuote);
+  }
+
+  function popupQuoteVisible(value){
+    if (!$popupQuote){return}
+    if (value === undefined){
+      $popupQuote.toggleClass('show hide');
+    } else {
+      if (value){
+        $popupQuote.removeClass('hide');
+        $popupQuote.addClass('show');
+      } else {
+        $popupQuote.removeClass('show');
+        $popupQuote.addClass('hide');
+      }
+    }
   }
 
   function newCssClass(cssClass){
@@ -144,6 +168,12 @@
         opacity: 1;
         background-color: #fff;
         transition: .2s;
+      }
+      #qt-popup.show {
+        display: block;
+      }
+      #qt-popup.hide {
+        display: none;
       }
     `)
   }
